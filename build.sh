@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
+set -e
+
 pip install -r requirements.txt
 
-# Pre-download pix2tex weights during build (not at runtime)
 python -c "
-import os, requests
-import pix2tex
+import os, requests, pix2tex
 
 save_dir = os.path.join(os.path.dirname(pix2tex.__file__), 'model', 'checkpoints')
 os.makedirs(save_dir, exist_ok=True)
@@ -17,7 +17,7 @@ if not os.path.exists(save_path):
     with open(save_path, 'wb') as f:
         for chunk in r.iter_content(65536):
             if chunk: f.write(chunk)
-    print('Weights downloaded!')
+    print('Weights downloaded successfully!')
 else:
-    print('Weights already exist.')
+    print('Weights already exist, skipping download.')
 "
