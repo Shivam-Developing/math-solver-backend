@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+echo "Python version: $(python --version)"
+
 pip install -r requirements.txt
 
 python -c "
@@ -17,7 +19,7 @@ if not os.path.exists(save_path):
     with open(save_path, 'wb') as f:
         for chunk in r.iter_content(65536):
             if chunk: f.write(chunk)
-    print('Weights downloaded successfully!')
+    print('Weights downloaded!')
 else:
-    print('Weights already exist, skipping download.')
+    print('Weights already exist.')
 "
