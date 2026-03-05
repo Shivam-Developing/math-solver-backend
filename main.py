@@ -23,7 +23,15 @@ app.add_middleware(
 # ── Load OCR model once at startup ────────────────────
 # (downloads ~300MB weights on very first run — wait for it)
 from pix2tex.cli import LatexOCR
-ocr_model = LatexOCR()
+ocr_model = None
+
+def get_ocr_model():
+    global ocr_model
+    if ocr_model is None:
+        print("Loading OCR model...")
+        ocr_model = LatexOCR()
+        print("OCR model ready!")
+    return ocr_model
 
 
 # ── Request schema ────────────────────────────────────
@@ -91,32 +99,30 @@ async def ocr_equation(file: UploadFile = File(...)):
     try:
         contents = await file.read()
         image = Image.open(io.BytesIO(contents)).convert("RGB")
-        latex_detected = ocr_model(image)
+        image = preprocess_image(image)
+
+        model = get_ocr_model()        # ← changed
+        latex_detected = model(image)  # ← changed
 
         return {
             "latex_detected": latex_detected,
             "message": "Equation detected! Auto-filled in solver."
         }
-
     except Exception as e:
         return {"error": str(e)}
 
 
-# ── OCR + Auto Solve endpoint ─────────────────────────
 @app.post("/ocr-and-solve")
 async def ocr_and_solve(file: UploadFile = File(...)):
     try:
         contents = await file.read()
         image = Image.open(io.BytesIO(contents)).convert("RGB")
 
-        # Step 1: Image → LaTeX
-        latex_detected = ocr_model(image)
+        model = get_ocr_model()        # ← changed
+        latex_detected = model(image)  # ← changed
 
-        # Step 2: LaTeX → SymPy expression
         x = symbols('x')
         sympy_expr = parse_latex(latex_detected)
-
-        # Step 3: Solve
         result = solve(sympy_expr, x)
 
         return {
@@ -125,6 +131,5 @@ async def ocr_and_solve(file: UploadFile = File(...)):
             "result": str(result),
             "result_latex": latex(result)
         }
-
     except Exception as e:
         return {"error": str(e)}
